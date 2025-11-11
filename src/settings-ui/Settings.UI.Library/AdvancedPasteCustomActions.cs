@@ -13,7 +13,6 @@ public sealed class AdvancedPasteCustomActions
     private static readonly JsonSerializerOptions _serializerOptions = new(SettingsSerializationContext.Default.Options)
     {
         WriteIndented = true,
-        TypeInfoResolver = SettingsSerializationContext.Default,
     };
 
     [JsonPropertyName("value")]
