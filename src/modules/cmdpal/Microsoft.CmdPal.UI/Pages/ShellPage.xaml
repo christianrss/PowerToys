@@ -207,7 +207,7 @@
                         ui:VisualExtensions.NormalizedCenterPoint="0.5,0.5"
                         AutomationProperties.AccessibilityView="Raw"
                         Source="ms-appx:///Assets/icon.svg"
-                        Visibility="{x:Bind ViewModel.CurrentPage.IsNested, Mode=OneWay, Converter={StaticResource BoolToInvertedVisibilityConverter}}">
+                        Visibility="{x:Bind viewModel.CurrentPage.IsNested, Mode=OneWay, Converter={StaticResource BoolToInvertedVisibilityConverter}}">
                         <animations:Implicit.ShowAnimations>
                             <animations:OpacityAnimation
                                 EasingMode="EaseIn"
@@ -250,7 +250,7 @@
                                               FontSize=14}"
                         FontSize="16"
                         Style="{StaticResource SubtleButtonStyle}"
-                        Visibility="{x:Bind ViewModel.CurrentPage.IsNested, Mode=OneWay}">
+                        Visibility="{x:Bind viewModel.CurrentPage.IsNested, Mode=OneWay}">
                         <animations:Implicit.ShowAnimations>
                             <animations:OpacityAnimation
                                 EasingMode="EaseIn"
@@ -295,9 +295,9 @@
                         VerticalAlignment="Center"
                         ui:VisualExtensions.NormalizedCenterPoint="0.5,0.5"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        SourceKey="{x:Bind ViewModel.CurrentPage.Icon, Mode=OneWay}"
+                        SourceKey="{x:Bind viewModel.CurrentPage.Icon, Mode=OneWay}"
                         SourceRequested="{x:Bind help:IconCacheProvider.SourceRequested}"
-                        Visibility="{x:Bind ViewModel.CurrentPage.IsNested, Mode=OneWay}">
+                        Visibility="{x:Bind viewModel.CurrentPage.IsNested, Mode=OneWay}">
                         <animations:Implicit.ShowAnimations>
                             <animations:OpacityAnimation
                                 From="0"
@@ -333,7 +333,7 @@
                     <cpcontrols:SearchBar
                         x:Name="SearchBox"
                         HorizontalAlignment="Stretch"
-                        CurrentPageViewModel="{x:Bind ViewModel.CurrentPage, Mode=OneWay}" />
+                        CurrentPageViewModel="{x:Bind viewModel.CurrentPage, Mode=OneWay}" />
                     <Grid.Transitions>
                         <TransitionCollection>
                             <RepositionThemeTransition />
@@ -345,7 +345,7 @@
                     <cpcontrols:FiltersDropDown
                         x:Name="FiltersDropDown"
                         HorizontalAlignment="Right"
-                        CurrentPageViewModel="{x:Bind ViewModel.CurrentPage, Mode=OneWay}" />
+                        CurrentPageViewModel="{x:Bind viewModel.CurrentPage, Mode=OneWay}" />
                 </Grid>
             </Grid>
 
@@ -353,7 +353,7 @@
                 Grid.ColumnSpan="2"
                 VerticalAlignment="Bottom"
                 IsIndeterminate="True"
-                Visibility="{x:Bind ViewModel.CurrentPage.IsLoading, Mode=OneWay}">
+                Visibility="{x:Bind viewModel.CurrentPage.IsLoading, Mode=OneWay}">
                 <animations:Implicit.ShowAnimations>
                     <animations:OpacityAnimation
                         From="0"
@@ -428,7 +428,7 @@
                             Margin="0,0,16,16"
                             HorizontalAlignment="Left"
                             AutomationProperties.AccessibilityView="Raw"
-                            SourceKey="{x:Bind ViewModel.Details.HeroImage, Mode=OneWay}"
+                            SourceKey="{x:Bind viewModel.Details.HeroImage, Mode=OneWay}"
                             SourceRequested="{x:Bind help:IconCacheProvider.SourceRequested}"
                             Visibility="{x:Bind HasHeroImage, Mode=OneWay}" />
 
@@ -436,23 +436,23 @@
                             Grid.Row="1"
                             FontSize="18"
                             FontWeight="SemiBold"
-                            Text="{x:Bind ViewModel.Details.Title, Mode=OneWay}"
+                            Text="{x:Bind viewModel.Details.Title, Mode=OneWay}"
                             TextWrapping="WrapWholeWords"
-                            Visibility="{x:Bind ViewModel.Details.Title, Converter={StaticResource StringNotEmptyToVisibilityConverter}, Mode=OneWay}" />
+                            Visibility="{x:Bind viewModel.Details.Title, Converter={StaticResource StringNotEmptyToVisibilityConverter}, Mode=OneWay}" />
 
                         <tkcontrols:MarkdownTextBlock
                             Grid.Row="2"
                             Margin="0,4,0,24"
                             Background="Transparent"
                             Config="{StaticResource DefaultMarkdownConfig}"
-                            Text="{x:Bind ViewModel.Details.Body, Mode=OneWay}"
+                            Text="{x:Bind viewModel.Details.Body, Mode=OneWay}"
                             UseEmphasisExtras="True"
                             UsePipeTables="True" />
 
                         <ItemsRepeater
                             Grid.Row="3"
                             ItemTemplate="{StaticResource DetailsDataTemplateSelector}"
-                            ItemsSource="{x:Bind ViewModel.Details.Metadata, Mode=OneWay}">
+                            ItemsSource="{x:Bind viewModel.Details.Metadata, Mode=OneWay}">
                             <ItemsRepeater.Layout>
                                 <StackLayout Spacing="12" />
                             </ItemsRepeater.Layout>
@@ -469,13 +469,13 @@
                 BorderBrush="{ThemeResource SystemControlErrorTextForegroundBrush}"
                 BorderThickness="0,1,0,1"
                 CornerRadius="0"
-                Visibility="{x:Bind ViewModel.CurrentPage.ErrorMessage, Converter={StaticResource StringNotEmptyToVisibilityConverter}, Mode=OneWay}">
+                Visibility="{x:Bind viewModel.CurrentPage.ErrorMessage, Converter={StaticResource StringNotEmptyToVisibilityConverter}, Mode=OneWay}">
                 <TextBlock Margin="16,8,16,16" IsTextSelectionEnabled="True">
                     <Run
                         FontWeight="SemiBold"
                         Foreground="{ThemeResource SystemErrorTextColor}"
                         Text="Error(s) on page:" />
-                    <LineBreak /><Run Text="{x:Bind ViewModel.CurrentPage.ErrorMessage, Mode=OneWay}" />
+                    <LineBreak /><Run Text="{x:Bind viewModel.CurrentPage.ErrorMessage, Mode=OneWay}" />
                 </TextBlock>
             </ScrollView>
         </Grid>
@@ -500,16 +500,16 @@
             CornerRadius="{ThemeResource ControlCornerRadius}">
             <InfoBar
                 CornerRadius="{ThemeResource ControlCornerRadius}"
-                IsOpen="{x:Bind ViewModel.CurrentPage.HasStatusMessage, Mode=OneWay}"
-                Message="{x:Bind ViewModel.CurrentPage.MostRecentStatusMessage.Message, Mode=OneWay}"
-                Severity="{x:Bind ViewModel.CurrentPage.MostRecentStatusMessage.State, Mode=OneWay, Converter={StaticResource MessageStateToSeverityConverter}}">
+                IsOpen="{x:Bind viewModel.CurrentPage.HasStatusMessage, Mode=OneWay}"
+                Message="{x:Bind viewModel.CurrentPage.MostRecentStatusMessage.Message, Mode=OneWay}"
+                Severity="{x:Bind viewModel.CurrentPage.MostRecentStatusMessage.State, Mode=OneWay, Converter={StaticResource MessageStateToSeverityConverter}}">
 
                 <InfoBar.Content>
                     <ProgressBar
                         Margin="0,-20,0,0"
-                        IsIndeterminate="{x:Bind ViewModel.CurrentPage.MostRecentStatusMessage.Progress.IsIndeterminate, Mode=OneWay}"
-                        Visibility="{x:Bind ViewModel.CurrentPage.MostRecentStatusMessage.HasProgress, Mode=OneWay}"
-                        Value="{x:Bind ViewModel.CurrentPage.MostRecentStatusMessage.Progress.ProgressPercent, Mode=OneWay}" />
+                        IsIndeterminate="{x:Bind viewModel.CurrentPage.MostRecentStatusMessage.Progress.IsIndeterminate, Mode=OneWay}"
+                        Visibility="{x:Bind viewModel.CurrentPage.MostRecentStatusMessage.HasProgress, Mode=OneWay}"
+                        Value="{x:Bind viewModel.CurrentPage.MostRecentStatusMessage.Progress.ProgressPercent, Mode=OneWay}" />
                     <!--  Margin="0,0,0,6" MaxWidth="200"/>  -->
                 </InfoBar.Content>
             </InfoBar>
@@ -520,7 +520,7 @@
             Background="{ThemeResource LayerOnAcrylicSecondaryBackgroundBrush}"
             BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,0">
-            <cpcontrols:CommandBar CurrentPageViewModel="{x:Bind ViewModel.CurrentPage, Mode=OneWay}" />
+            <cpcontrols:CommandBar CurrentPageViewModel="{x:Bind viewModel.CurrentPage, Mode=OneWay}" />
         </Grid>
 
         <VisualStateManager.VisualStateGroups>
@@ -528,7 +528,7 @@
                 <VisualState x:Name="DetailsCollapsed" />
                 <VisualState x:Name="DetailsVisible">
                     <VisualState.StateTriggers>
-                        <StateTrigger IsActive="{x:Bind ViewModel.IsDetailsVisible, Mode=OneWay}" />
+                        <StateTrigger IsActive="{x:Bind viewModel.IsDetailsVisible, Mode=OneWay}" />
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="DetailsContent.Visibility" Value="Visible" />
@@ -547,7 +547,7 @@
                 <VisualState x:Name="SearchBarVisible" />
                 <VisualState x:Name="SearchBarCollapsed">
                     <VisualState.StateTriggers>
-                        <StateTrigger IsActive="{x:Bind h:BindTransformers.Negate(ViewModel.IsSearchBoxVisible), Mode=OneWay}" />
+                        <StateTrigger IsActive="{x:Bind h:BindTransformers.Negate(viewModel.IsSearchBoxVisible), Mode=OneWay}" />
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="SearchBox.IsEnabled" Value="False" />

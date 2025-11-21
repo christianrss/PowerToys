@@ -11,14 +11,12 @@ namespace Microsoft.CmdPal.UI.Events;
 
 [EventData]
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
-public class CmdPalInvokeResultEvent : TelemetryEventBase
+public class DismissedOnLostFocusEvent : TelemetryEventBase
 {
-    public string ResultKind { get; set; }
-
-    public CmdPalInvokeResultEvent(CommandResultKind resultKind)
-    {
-        ResultKind = resultKind.ToString();
-    }
-
     public override PartA_PrivTags PartA_PrivTags => PartA_PrivTags.ProductAndServiceUsage;
+
+    public DismissedOnLostFocusEvent()
+    {
+        EventName = "CmdPal_DismissedOnLostFocus";
+    }
 }

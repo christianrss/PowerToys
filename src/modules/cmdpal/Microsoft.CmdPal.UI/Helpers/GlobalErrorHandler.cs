@@ -2,8 +2,8 @@
 // The Microsoft Corporation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using ManagedCommon;
 using Microsoft.CmdPal.Core.Common.Helpers;
+using Microsoft.Extensions.Logging;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -17,6 +17,13 @@ namespace Microsoft.CmdPal.UI.Helpers;
 /// </summary>
 internal sealed partial class GlobalErrorHandler
 {
+    private readonly ILogger _logger;
+
+    public GlobalErrorHandler(ILogger logger)
+    {
+        _logger = logger;
+    }
+
     // GlobalErrorHandler is designed to be self-contained; it can be registered and invoked before a service provider is available.
     internal void Register(App app)
     {
@@ -54,9 +61,9 @@ internal sealed partial class GlobalErrorHandler
         HandleException(e.Exception, Context.UnobservedTaskException);
     }
 
-    private static void HandleException(Exception ex, Context context)
+    private void HandleException(Exception ex, Context context)
     {
-        Logger.LogError($"Unhandled exception detected ({context})", ex);
+        Log_UnhandledException(ex, context);
 
         if (context == Context.MainThreadException)
         {
@@ -93,7 +100,7 @@ internal sealed partial class GlobalErrorHandler
         }
     }
 
-    private static string? StoreReport(string report, bool storeOnDesktop)
+    private string? StoreReport(string report, bool storeOnDesktop)
     {
         // Generate a unique name for the report file; include timestamp and a random zero-padded number to avoid collisions
         // in case of crash storm.
@@ -101,15 +108,18 @@ internal sealed partial class GlobalErrorHandler
 
         // Always store a copy in log directory, this way it is available for Bug Report Tool
         string? reportPath = null;
-        if (Logger.CurrentVersionLogDirectoryPath != null)
+        if (_logger is LogWrapper logWrapper)
         {
-            reportPath = Save(report, name, static () => Logger.CurrentVersionLogDirectoryPath);
+            if (logWrapper.CurrentVersionLogDirectoryPath != null)
+            {
+                reportPath = Save(report, name, logWrapper.CurrentVersionLogDirectoryPath);
+            }
         }
 
         // Optionally store a copy on the desktop for user (in)convenience
         if (storeOnDesktop)
         {
-            var path = Save(report, name, static () => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory));
+            var path = Save(report, name, Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory));
 
             // show the desktop copy if both succeeded
             if (path != null)
@@ -120,11 +130,10 @@ internal sealed partial class GlobalErrorHandler
 
         return reportPath;
 
-        static string? Save(string reportContent, string reportFileName, Func<string> directory)
+        string? Save(string reportContent, string reportFileName, string logDirectory)
         {
             try
             {
-                var logDirectory = directory();
                 Directory.CreateDirectory(logDirectory);
                 var reportFilePath = Path.Combine(logDirectory, reportFileName);
                 File.WriteAllText(reportFilePath, reportContent);
@@ -132,7 +141,7 @@ internal sealed partial class GlobalErrorHandler
             }
             catch (Exception ex)
             {
-                Logger.LogError("Failed to store exception report", ex);
+                Log_FailedToStoreExceptionReport(ex);
                 return null;
             }
         }
@@ -146,4 +155,10 @@ internal sealed partial class GlobalErrorHandler
         UnobservedTaskException,
         AppDomainUnhandledException,
     }
+
+    [LoggerMessage(level: LogLevel.Error, message: "Failed to store exception report")]
+    partial void Log_FailedToStoreExceptionReport(Exception ex);
+
+    [LoggerMessage(level: LogLevel.Error, message: "Unhandled exception detected ({Context})")]
+    partial void Log_UnhandledException(Exception ex, Context context);
 }

@@ -4,6 +4,4 @@
 
 namespace Microsoft.CmdPal.UI.Messages;
 
-public record SettingsWindowClosedMessage
-{
-}
+public record SettingsWindowClosedMessage;

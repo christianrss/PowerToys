@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.CmdPal.UI.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel;
 
@@ -15,12 +14,11 @@ public sealed partial class GeneralPage : Page
 
     private readonly SettingsViewModel? viewModel;
 
-    public GeneralPage()
+    public GeneralPage(SettingsViewModel settingsViewModel)
     {
         this.InitializeComponent();
 
-        var settings = App.Current.Services.GetService<SettingsModel>()!;
-        viewModel = new SettingsViewModel(settings, App.Current.Services, _mainTaskScheduler);
+        viewModel = settings;
     }
 
     public string ApplicationVersion

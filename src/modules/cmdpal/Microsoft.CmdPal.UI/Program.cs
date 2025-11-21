@@ -2,7 +2,6 @@
 // The Microsoft Corporation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Runtime.InteropServices;
 using ManagedCommon;
 using Microsoft.CmdPal.Core.Common.Helpers;
 using Microsoft.CmdPal.Core.Common.Services;
@@ -24,8 +23,10 @@ using Microsoft.CmdPal.Ext.WindowWalker;
 using Microsoft.CmdPal.Ext.WinGet;
 using Microsoft.CmdPal.UI.Events;
 using Microsoft.CmdPal.UI.Helpers;
+using Microsoft.CmdPal.UI.Pages;
 using Microsoft.CmdPal.UI.Services;
 using Microsoft.CmdPal.UI.Services.Telemetry;
+using Microsoft.CmdPal.UI.Settings;
 using Microsoft.CmdPal.UI.ViewModels;
 using Microsoft.CmdPal.UI.ViewModels.BuiltinCommands;
 using Microsoft.CmdPal.UI.ViewModels.Models;
@@ -37,7 +38,6 @@ using Microsoft.Windows.AppLifecycle;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Com;
-using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Microsoft.CmdPal.UI;
 
@@ -47,10 +47,10 @@ namespace Microsoft.CmdPal.UI;
 internal sealed partial class Program
 {
     private static readonly ETWTrace _etwTrace = new ETWTrace();
-    private static readonly GlobalErrorHandler _globalErrorHandler = new();
     private static DispatcherQueueSynchronizationContext? uiContext;
     private static App? app;
-    private static ILogger? _logger;
+    private static ILogger _logger = new LogWrapper();
+    private static GlobalErrorHandler _globalErrorHandler = new(_logger);
     private static ITelemetryService? _telemetry;
 
     // LOAD BEARING
@@ -71,7 +71,8 @@ internal sealed partial class Program
 
         // Root services
         services.AddSingleton(TaskScheduler.FromCurrentSynchronizationContext());
-        services.AddSingleton<ILogger, LogWrapper>();
+        services.AddSingleton<ILogger>(_logger);
+        services.AddSingleton<LocalKeyboardListener>();
 
         // Settings & state
         var sm = SettingsModel.LoadSettings();
@@ -135,12 +136,19 @@ internal sealed partial class Program
         // ViewModels
         services.AddSingleton<ShellViewModel>();
         services.AddSingleton<IPageViewModelFactoryService, CommandPalettePageViewModelFactory>();
+        services.AddTransient<SettingsViewModel>();
 
         // Views
         // App & MainWindow are singletons to ensure only one instance of each exists.
         // Other views can be Transient.
         services.AddSingleton<App>();
         services.AddSingleton<MainWindow>();
+
+        services.AddTransient<GeneralPage>();
+        services.AddTransient<ExtensionsPage>();
+        services.AddTransient<ExtensionPage>();
+        services.AddTransient<SettingsWindow>();
+        services.AddTransient<ShellPage>();
 
         var serviceProvider = services.BuildServiceProvider();
         _logger = serviceProvider.GetRequiredService<ILogger>();
@@ -151,37 +159,10 @@ internal sealed partial class Program
             Log_StartingAt(_logger, DateTime.UtcNow);
         }
 
-        _telemetry.WriteEvent(new CmdPalProcessStartedEvent());
-
-        try
-        {
-            Logger.InitializeLogger("\\CmdPal\\Logs\\");
-        }
-        catch (COMException e)
-        {
-            // This is unexpected. For the sake of debugging:
-            // pop a message box
-            PInvoke.MessageBox(
-                (HWND)IntPtr.Zero,
-                $"Failed to initialize the logger. COMException: \r{e.Message}",
-                "Command Palette",
-                MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONERROR);
-            return 0;
-        }
-        catch (Exception e2)
-        {
-            // This is unexpected. For the sake of debugging:
-            // pop a message box
-            PInvoke.MessageBox(
-                (HWND)IntPtr.Zero,
-                $"Failed to initialize the logger. Unknown Exception: \r{e2.Message}",
-                "Command Palette",
-                MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONERROR);
-            return 0;
-        }
+        _telemetry.WriteEvent(new ProcessStartedEvent());
 
         Logger.LogDebug($"Starting at {DateTime.UtcNow}");
-        PowerToysTelemetry.Log.WriteEvent(new CmdPalProcessStartedEvent());
+        PowerToysTelemetry.Log.WriteEvent(new ProcessStartedEvent());
 
         // Ensure types used in XAML are preserved for AOT compilation
         TypePreservation.PreserveTypes();
@@ -189,7 +170,7 @@ internal sealed partial class Program
         NativeEventWaiter.WaitForEventLoop(
             "Local\\PowerToysCmdPal-ExitEvent-eb73f6be-3f22-4b36-aee3-62924ba40bfd", () =>
             {
-                _etwTrace?.Dispose();
+                _etwTrace.Dispose();
                 app?.AppWindow?.Close();
                 Environment.Exit(0);
             });
@@ -253,11 +234,11 @@ internal sealed partial class Program
             }
             catch (OperationCanceledException)
             {
-                Log_FailedToActivate(_logger!, redirectTimeout);
+                Log_FailedToActivate(_logger, redirectTimeout);
             }
             catch (Exception ex)
             {
-                Log_ActivateError(_logger!, ex);
+                Log_ActivateError(_logger, ex);
             }
             finally
             {

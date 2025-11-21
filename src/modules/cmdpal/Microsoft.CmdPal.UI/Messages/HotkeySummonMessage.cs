@@ -4,6 +4,4 @@
 
 namespace Microsoft.CmdPal.UI.Messages;
 
-public record HotkeySummonMessage(string CommandId, IntPtr Hwnd)
-{
-}
+public record HotkeySummonMessage(string CommandId, IntPtr Hwnd);

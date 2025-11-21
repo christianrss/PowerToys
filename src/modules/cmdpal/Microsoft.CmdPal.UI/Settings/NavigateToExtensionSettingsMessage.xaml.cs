@@ -6,6 +6,4 @@ using Microsoft.CmdPal.UI.ViewModels;
 
 namespace Microsoft.CmdPal.UI.Settings;
 
-public record NavigateToExtensionSettingsMessage(ProviderSettingsViewModel ProviderSettingsVM)
-{
-}
+public record NavigateToExtensionSettingsMessage(ProviderSettingsViewModel ProviderSettingsVM);

@@ -11,7 +11,15 @@ namespace Microsoft.CmdPal.UI.Events;
 
 [EventData]
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
-public class CmdPalProcessStartedEvent : TelemetryEventBase
+public class HotkeySummonedEvent : TelemetryEventBase
 {
+    public bool Global { get; set; }
+
+    public HotkeySummonedEvent(bool global)
+    {
+        Global = global;
+        EventName = "CmdPal_HotkeySummoned";
+    }
+
     public override PartA_PrivTags PartA_PrivTags => PartA_PrivTags.ProductAndServiceUsage;
 }

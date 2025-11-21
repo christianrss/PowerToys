@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using CommunityToolkit.WinUI.Controls;
-using ManagedCommon;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Microsoft.CmdPal.UI.Helpers.MarkdownImageProviders;
@@ -11,6 +11,12 @@ namespace Microsoft.CmdPal.UI.Helpers.MarkdownImageProviders;
 internal sealed partial class ImageProvider : IImageProvider
 {
     private readonly CompositeImageSourceProvider _compositeProvider = new();
+    private readonly ILogger _logger;
+
+    public ImageProvider(ILogger logger)
+    {
+        _logger = logger;
+    }
 
     public async Task<Image> GetImage(string url)
     {
@@ -31,7 +37,7 @@ internal sealed partial class ImageProvider : IImageProvider
         }
         catch (Exception ex)
         {
-            Logger.LogError($"Failed to provide an image from URI '{url}'", ex);
+            Log_FailedToProvideImageFromUrl(url, ex);
             return null!;
         }
     }
@@ -40,4 +46,7 @@ internal sealed partial class ImageProvider : IImageProvider
     {
         return _compositeProvider.ShouldUseThisProvider(url);
     }
+
+    [LoggerMessage(level: LogLevel.Error, message: "Failed to provide an image from URI '{url}'")]
+    partial void Log_FailedToProvideImageFromUrl(string url, Exception ex);
 }

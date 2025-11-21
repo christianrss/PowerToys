@@ -5,7 +5,6 @@
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.WinUI.Controls;
 using Microsoft.CmdPal.UI.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -14,16 +13,12 @@ namespace Microsoft.CmdPal.UI.Settings;
 
 public sealed partial class ExtensionsPage : Page
 {
-    private readonly TaskScheduler _mainTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
-
     private readonly SettingsViewModel? viewModel;
 
-    public ExtensionsPage()
+    public ExtensionsPage(SettingsViewModel settingsViewModel)
     {
         this.InitializeComponent();
-
-        var settings = App.Current.Services.GetService<SettingsModel>()!;
-        viewModel = new SettingsViewModel(settings, App.Current.Services, _mainTaskScheduler);
+        viewModel = settingsViewModel;
     }
 
     private void SettingsCard_Click(object sender, RoutedEventArgs e)

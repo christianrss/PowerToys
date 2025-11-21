@@ -11,7 +11,12 @@ namespace Microsoft.CmdPal.UI.Events;
 
 [EventData]
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
-public class CmdPalDismissedOnLostFocusEvent : TelemetryEventBase
+public class DismissedOnEscEvent : TelemetryEventBase
 {
     public override PartA_PrivTags PartA_PrivTags => PartA_PrivTags.ProductAndServiceUsage;
+
+    public DismissedOnEscEvent()
+    {
+        EventName = "CmdPal_DismissedOnEsc";
+    }
 }

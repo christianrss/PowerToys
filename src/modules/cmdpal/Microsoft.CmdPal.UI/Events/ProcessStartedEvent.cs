@@ -11,7 +11,12 @@ namespace Microsoft.CmdPal.UI.Events;
 
 [EventData]
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
-public class CmdPalDismissedOnEscEvent : TelemetryEventBase
+public class ProcessStartedEvent : TelemetryEventBase
 {
     public override PartA_PrivTags PartA_PrivTags => PartA_PrivTags.ProductAndServiceUsage;
+
+    public ProcessStartedEvent()
+    {
+        EventName = "CmdPal_ProcessStarted";
+    }
 }

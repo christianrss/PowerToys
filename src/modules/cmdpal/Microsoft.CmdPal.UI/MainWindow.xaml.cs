@@ -576,7 +576,7 @@ public sealed partial class MainWindow : WindowEx,
             // This will DWM cloak our window:
             HideWindow();
 
-            PowerToysTelemetry.Log.WriteEvent(new CmdPalDismissedOnLostFocusEvent());
+            PowerToysTelemetry.Log.WriteEvent(new DismissedOnLostFocusEvent());
         }
 
         if (_configurationSource is not null)
@@ -767,7 +767,7 @@ public sealed partial class MainWindow : WindowEx,
     private void HandleSummonCore(string commandId)
     {
         var isRootHotkey = string.IsNullOrEmpty(commandId);
-        PowerToysTelemetry.Log.WriteEvent(new CmdPalHotkeySummonedEvent(isRootHotkey));
+        PowerToysTelemetry.Log.WriteEvent(new HotkeySummonedEvent(isRootHotkey));
 
         var isVisible = this.Visible;
 

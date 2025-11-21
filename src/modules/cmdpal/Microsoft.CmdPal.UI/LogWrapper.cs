@@ -3,7 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Globalization;
+using System.Runtime.InteropServices;
+using ManagedCommon;
 using Microsoft.Extensions.Logging;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Microsoft.CmdPal.UI;
 
@@ -12,6 +17,36 @@ internal class LogWrapper : ILogger
     private static readonly object _lock = new();
     private static readonly AsyncLocal<Stack<object>> _scopes = new();
     private static readonly LogLevel _minLevel = InitializeLevel();
+
+    public string CurrentVersionLogDirectoryPath => Logger.CurrentVersionLogDirectoryPath;
+
+    public LogWrapper()
+    {
+        try
+        {
+            Logger.InitializeLogger("\\CmdPal\\Logs\\");
+        }
+        catch (COMException e)
+        {
+            // This is unexpected. For the sake of debugging:
+            // pop a message box
+            PInvoke.MessageBox(
+                (HWND)IntPtr.Zero,
+                $"Failed to initialize the logger. COMException: \r{e.Message}",
+                "Command Palette",
+                MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONERROR);
+        }
+        catch (Exception e2)
+        {
+            // This is unexpected. For the sake of debugging:
+            // pop a message box
+            PInvoke.MessageBox(
+                (HWND)IntPtr.Zero,
+                $"Failed to initialize the logger. Unknown Exception: \r{e2.Message}",
+                "Command Palette",
+                MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONERROR);
+        }
+    }
 
     private static LogLevel InitializeLevel()
     {
@@ -107,13 +142,16 @@ internal class LogWrapper : ILogger
         public void Dispose()
         {
             if (_disposed)
+            {
                 return;
+            }
+
             if (_stack.Count > 0)
             {
                 _stack.Pop();
             }
+
             _disposed = true;
         }
     }
 }
-

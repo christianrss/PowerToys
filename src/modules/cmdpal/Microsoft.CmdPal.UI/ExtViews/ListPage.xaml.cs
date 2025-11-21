@@ -4,14 +4,13 @@
 
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.Messaging;
-using ManagedCommon;
 using Microsoft.CmdPal.Core.ViewModels;
 using Microsoft.CmdPal.Core.ViewModels.Commands;
 using Microsoft.CmdPal.Core.ViewModels.Messages;
 using Microsoft.CmdPal.UI.Helpers;
 using Microsoft.CmdPal.UI.Messages;
 using Microsoft.CmdPal.UI.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -31,6 +30,8 @@ public sealed partial class ListPage : Page,
     IRecipient<ActivateSelectedListItemMessage>,
     IRecipient<ActivateSecondaryCommandMessage>
 {
+    private readonly SettingsModel settings;
+    public readonly ILogger Logger;
     private InputSource _lastInputSource;
 
     internal ListViewModel? ViewModel
@@ -51,9 +52,11 @@ public sealed partial class ListPage : Page,
         }
     }
 
-    public ListPage()
+    public ListPage(SettingsModel settingsModel, ILogger logger)
     {
         this.InitializeComponent();
+        settings = settingsModel;
+        Logger = logger;
         this.NavigationCacheMode = NavigationCacheMode.Disabled;
         this.ItemView.Loaded += Items_Loaded;
         this.ItemView.PreviewKeyDown += Items_PreviewKeyDown;
@@ -133,7 +136,6 @@ public sealed partial class ListPage : Page,
                 return;
             }
 
-            var settings = App.Current.Services.GetService<SettingsModel>()!;
             if (settings.SingleClickActivates)
             {
                 ViewModel?.InvokeItemCommand.Execute(item);
@@ -150,7 +152,6 @@ public sealed partial class ListPage : Page,
     {
         if (ItemView.SelectedItem is ListItemViewModel vm)
         {
-            var settings = App.Current.Services.GetService<SettingsModel>()!;
             if (!settings.SingleClickActivates)
             {
                 ViewModel?.InvokeItemCommand.Execute(vm);
@@ -456,7 +457,7 @@ public sealed partial class ListPage : Page,
             }
             else if (e.NewValue is null)
             {
-                Logger.LogDebug("cleared view model");
+                Log_ClearedViewModel(@this.Logger);
             }
         }
     }
@@ -576,4 +577,7 @@ public sealed partial class ListPage : Page,
         Keyboard,
         Pointer,
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Cleared view model")]
+    static partial void Log_ClearedViewModel(ILogger logger);
 }
