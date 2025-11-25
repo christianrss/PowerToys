@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.CmdPal.Core.Common.Helpers;
-using Microsoft.CmdPal.UI.Services;
 using Microsoft.Extensions.Logging;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -64,7 +63,7 @@ internal sealed partial class GlobalErrorHandler
 
     private void HandleException(Exception ex, Context context)
     {
-        Log_UnhandledException()
+        Log_UnhandledException(ex, context);
 
         if (context == Context.MainThreadException)
         {

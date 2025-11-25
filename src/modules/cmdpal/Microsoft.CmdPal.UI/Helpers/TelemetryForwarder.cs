@@ -3,9 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.CmdPal.Core.Common.Services.Telemetry;
 using Microsoft.CmdPal.Core.ViewModels.Messages;
 using Microsoft.CmdPal.UI.Events;
-using Microsoft.CmdPal.UI.Services.Telemetry;
 using Microsoft.PowerToys.Telemetry;
 
 namespace Microsoft.CmdPal.UI;
@@ -34,7 +34,7 @@ internal sealed class TelemetryForwarder :
 
     public void Receive(CmdPalInvokeResultMessage message)
     {
-        PowerToysTelemetry.Log.WriteEvent(new CmdPalInvokeResult(message.Kind));
+        PowerToysTelemetry.Log.WriteEvent(new InvokeResultEvent(message.Kind));
     }
 
     public void Receive(BeginInvokeMessage message)

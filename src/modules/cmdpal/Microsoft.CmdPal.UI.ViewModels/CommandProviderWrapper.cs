@@ -2,22 +2,23 @@
 // The Microsoft Corporation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using ManagedCommon;
 using Microsoft.CmdPal.Core.Common.Services;
 using Microsoft.CmdPal.Core.ViewModels;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
-using Microsoft.Extensions.DependencyInjection;
-
+using Microsoft.Extensions.Logging;
 using Windows.Foundation;
 
 namespace Microsoft.CmdPal.UI.ViewModels;
 
-public sealed class CommandProviderWrapper
+public sealed partial class CommandProviderWrapper
 {
     public bool IsExtension => Extension is not null;
 
     private readonly bool isValid;
+    private readonly ILogger _logger;
+    private readonly AliasManager _aliasManager;
+    private readonly HotkeyManager _hotKeyManager;
 
     private readonly ExtensionObject<ICommandProvider> _commandProvider;
 
@@ -51,15 +52,18 @@ public sealed class CommandProviderWrapper
         }
     }
 
-    public CommandProviderWrapper(ICommandProvider provider, TaskScheduler mainThread)
+    public CommandProviderWrapper(ICommandProvider provider, TaskScheduler mainThread, AliasManager aliasManager, HotkeyManager hotkeyManager, ILogger logger)
     {
         // This ctor is only used for in-proc builtin commands. So the Unsafe!
         // calls are pretty dang safe actually.
         _commandProvider = new(provider);
         _taskScheduler = mainThread;
+        _logger = logger;
+        _aliasManager = aliasManager;
+        _hotKeyManager = hotkeyManager;
 
         // Hook the extension back into us
-        ExtensionHost = new CommandPaletteHost(provider);
+        ExtensionHost = new CommandPaletteHost(provider, logger);
         _commandProvider.Unsafe!.InitializeWithHost(ExtensionHost);
 
         _commandProvider.Unsafe!.ItemsChanged += CommandProvider_ItemsChanged;
@@ -72,16 +76,20 @@ public sealed class CommandProviderWrapper
 
         // Note: explicitly not InitializeProperties()ing the settings here. If
         // we do that, then we'd regress GH #38321
-        Settings = new(provider.Settings, this, _taskScheduler);
+        Settings = new(provider.Settings, this, _taskScheduler, _logger);
 
-        Logger.LogDebug($"Initialized command provider {ProviderId}");
+        Log_CommandProviderInitialized(ProviderId);
     }
 
-    public CommandProviderWrapper(IExtensionWrapper extension, TaskScheduler mainThread)
+    public CommandProviderWrapper(IExtensionWrapper extension, TaskScheduler mainThread, AliasManager aliasManager, HotkeyManager hotkeyManager, ILogger logger)
     {
         _taskScheduler = mainThread;
+        _logger = logger;
+        _aliasManager = aliasManager;
+        _hotKeyManager = hotkeyManager;
         Extension = extension;
-        ExtensionHost = new CommandPaletteHost(extension);
+
+        ExtensionHost = new CommandPaletteHost(extension, logger);
         if (!Extension.IsRunning())
         {
             throw new ArgumentException("You forgot to start the extension. This is a CmdPal error - we need to make sure to call StartExtensionAsync");
@@ -106,13 +114,11 @@ public sealed class CommandProviderWrapper
 
             isValid = true;
 
-            Logger.LogDebug($"Initialized extension command provider {Extension.PackageFamilyName}:{Extension.ExtensionUniqueId}");
+            Log_ExtensionInitialized(Extension.PackageFamilyName, Extension.ExtensionUniqueId);
         }
         catch (Exception e)
         {
-            Logger.LogError("Failed to initialize CommandProvider for extension.");
-            Logger.LogError($"Extension was {Extension!.PackageFamilyName}");
-            Logger.LogError(e.ToString());
+            Log_FailedToInitializeCommandProviderForExtension(Extension!.PackageFamilyName, e);
         }
 
         isValid = true;
@@ -123,7 +129,7 @@ public sealed class CommandProviderWrapper
         return settings.GetProviderSettings(this);
     }
 
-    public async Task LoadTopLevelCommands(IServiceProvider serviceProvider, WeakReference<IPageContext> pageContext)
+    public async Task LoadTopLevelCommands(SettingsModel settingsModel, WeakReference<IPageContext> pageContext)
     {
         if (!isValid)
         {
@@ -131,9 +137,7 @@ public sealed class CommandProviderWrapper
             return;
         }
 
-        var settings = serviceProvider.GetService<SettingsModel>()!;
-
-        IsActive = GetProviderSettings(settings).IsEnabled;
+        IsActive = GetProviderSettings(settingsModel).IsEnabled;
         if (!IsActive)
         {
             return;
@@ -165,30 +169,27 @@ public sealed class CommandProviderWrapper
 
             // Note: explicitly not InitializeProperties()ing the settings here. If
             // we do that, then we'd regress GH #38321
-            Settings = new(model.Settings, this, _taskScheduler);
+            Settings = new(model.Settings, this, _taskScheduler, _logger);
 
             // We do need to explicitly initialize commands though
-            InitializeCommands(commands, fallbacks, serviceProvider, pageContext);
+            InitializeCommands(commands, fallbacks, settingsModel, pageContext);
 
-            Logger.LogDebug($"Loaded commands from {DisplayName} ({ProviderId})");
+            Log_LoadedCommandsFromExtension(DisplayName, ProviderId);
         }
         catch (Exception e)
         {
-            Logger.LogError("Failed to load commands from extension");
-            Logger.LogError($"Extension was {Extension!.PackageFamilyName}");
-            Logger.LogError(e.ToString());
+            Log_FailedToLoadCommandsFromProvider(Extension!.PackageFamilyName, e);
         }
     }
 
-    private void InitializeCommands(ICommandItem[] commands, IFallbackCommandItem[] fallbacks, IServiceProvider serviceProvider, WeakReference<IPageContext> pageContext)
+    private void InitializeCommands(ICommandItem[] commands, IFallbackCommandItem[] fallbacks, SettingsModel settingsModel, WeakReference<IPageContext> pageContext)
     {
-        var settings = serviceProvider.GetService<SettingsModel>()!;
-        var providerSettings = GetProviderSettings(settings);
+        var providerSettings = GetProviderSettings(settingsModel);
 
         Func<ICommandItem?, bool, TopLevelViewModel> makeAndAdd = (ICommandItem? i, bool fallback) =>
         {
-            CommandItemViewModel commandItemViewModel = new(new(i), pageContext);
-            TopLevelViewModel topLevelViewModel = new(commandItemViewModel, fallback, ExtensionHost, ProviderId, settings, providerSettings, serviceProvider);
+            CommandItemViewModel commandItemViewModel = new(new(i), pageContext, _logger);
+            TopLevelViewModel topLevelViewModel = new(commandItemViewModel, fallback, ExtensionHost, ProviderId, settingsModel, providerSettings, _aliasManager, _hotKeyManager);
             topLevelViewModel.InitializeProperties();
 
             return topLevelViewModel;
@@ -211,12 +212,13 @@ public sealed class CommandProviderWrapper
     private void UnsafePreCacheApiAdditions(ICommandProvider2 provider)
     {
         var apiExtensions = provider.GetApiExtensionStubs();
-        Logger.LogDebug($"Provider supports {apiExtensions.Length} extensions");
+        Log_ProviderCount(apiExtensions.Length);
+
         foreach (var a in apiExtensions)
         {
             if (a is IExtendedAttributesProvider command2)
             {
-                Logger.LogDebug($"{ProviderId}: Found an IExtendedAttributesProvider");
+                Log_IExtendedAttributesProviderFound(ProviderId);
             }
         }
     }
@@ -234,4 +236,25 @@ public sealed class CommandProviderWrapper
         // In handling this, a call will be made to `LoadTopLevelCommands` to
         // retrieve the new items.
         this.CommandsChanged?.Invoke(this, args);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Initialized CommandProvider '{ProviderId}'")]
+    partial void Log_CommandProviderInitialized(string providerId);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "{ProviderId}: Found an IExtendedAttributesProvider")]
+    partial void Log_IExtendedAttributesProviderFound(string providerId);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Provider exposed {Count} API extensions")]
+    partial void Log_ProviderCount(int count);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Initialized CommandProvider from extension '{PackageFamilyName}' ({ExtensionId})")]
+    partial void Log_ExtensionInitialized(string packageFamilyName, string extensionId);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Loaded commands from {DisplayName} ({ProviderId})")]
+    partial void Log_LoadedCommandsFromExtension(string displayName, string providerId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to load commands from extension '{PackageFamilyName}'")]
+    partial void Log_FailedToLoadCommandsFromProvider(string packageFamilyName, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to initialize CommandProvider for extension '{PackageFamilyName}'")]
+    partial void Log_FailedToInitializeCommandProviderForExtension(string packageFamilyName, Exception exception);
 }

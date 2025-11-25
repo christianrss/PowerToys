@@ -4,6 +4,7 @@
 
 using Microsoft.CmdPal.Core.ViewModels;
 using Microsoft.CommandPalette.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.UI.ViewModels;
 
@@ -11,18 +12,20 @@ public class CommandPalettePageViewModelFactory
     : IPageViewModelFactoryService
 {
     private readonly TaskScheduler _scheduler;
+    private readonly ILogger _logger;
 
-    public CommandPalettePageViewModelFactory(TaskScheduler scheduler)
+    public CommandPalettePageViewModelFactory(TaskScheduler scheduler, ILogger logger)
     {
         _scheduler = scheduler;
+        _logger = logger;
     }
 
     public PageViewModel? TryCreatePageViewModel(IPage page, bool nested, AppExtensionHost host)
     {
         return page switch
         {
-            IListPage listPage => new ListViewModel(listPage, _scheduler, host) { IsNested = nested },
-            IContentPage contentPage => new CommandPaletteContentPageViewModel(contentPage, _scheduler, host),
+            IListPage listPage => new ListViewModel(listPage, _scheduler, host, _logger) { IsNested = nested },
+            IContentPage contentPage => new CommandPaletteContentPageViewModel(contentPage, _scheduler, host, _logger),
             _ => null,
         };
     }

@@ -2,10 +2,9 @@
 // The Microsoft Corporation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
-using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
@@ -21,8 +20,8 @@ public partial class FiltersViewModel : ExtensionObjectViewModel
 
     public bool ShouldShowFilters => Filters.Length > 0;
 
-    public FiltersViewModel(ExtensionObject<IFilters> filters, WeakReference<IPageContext> context)
-        : base(context)
+    public FiltersViewModel(ExtensionObject<IFilters> filters, WeakReference<IPageContext> context, ILogger logger)
+        : base(context, logger)
     {
         _filtersModel = filters;
     }
@@ -71,7 +70,7 @@ public partial class FiltersViewModel : ExtensionObjectViewModel
         {
             if (filter is IFilter filterItem)
             {
-                var filterItemViewModel = new FilterItemViewModel(filterItem, PageContext);
+                var filterItemViewModel = new FilterItemViewModel(filterItem, PageContext, Logger);
                 filterItemViewModel.InitializeProperties();
 
                 if (firstFilterItem is null)

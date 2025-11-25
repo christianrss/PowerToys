@@ -101,7 +101,7 @@ public partial class ExtensionService : IExtensionService, IDisposable
                 await _getInstalledExtensionsLock.WaitAsync();
                 try
                 {
-                    var wrappers = await CreateWrappersForExtension(extension);
+                    var wrappers = await CreateWrappersForExtension(extension, _logger);
 
                     UpdateExtensionsListsFromWrappers(wrappers);
 
@@ -201,7 +201,7 @@ public partial class ExtensionService : IExtensionService, IDisposable
                 var extensions = await GetInstalledAppExtensionsAsync();
                 foreach (var extension in extensions)
                 {
-                    var wrappers = await CreateWrappersForExtension(extension);
+                    var wrappers = await CreateWrappersForExtension(extension, _logger);
                     UpdateExtensionsListsFromWrappers(wrappers);
                 }
             }
@@ -235,7 +235,7 @@ public partial class ExtensionService : IExtensionService, IDisposable
         }
     }
 
-    private static async Task<List<ExtensionWrapper>> CreateWrappersForExtension(AppExtension extension)
+    private static async Task<List<ExtensionWrapper>> CreateWrappersForExtension(AppExtension extension, ILogger logger)
     {
         var (cmdPalProvider, classIds) = await GetCmdPalExtensionPropertiesAsync(extension);
 
@@ -247,14 +247,14 @@ public partial class ExtensionService : IExtensionService, IDisposable
         List<ExtensionWrapper> wrappers = [];
         foreach (var classId in classIds)
         {
-            var extensionWrapper = CreateExtensionWrapper(extension, cmdPalProvider, classId);
+            var extensionWrapper = CreateExtensionWrapper(extension, cmdPalProvider, classId, logger);
             wrappers.Add(extensionWrapper);
         }
 
         return wrappers;
     }
 
-    private static ExtensionWrapper CreateExtensionWrapper(AppExtension extension, IPropertySet cmdPalProvider, string classId)
+    private static ExtensionWrapper CreateExtensionWrapper(AppExtension extension, IPropertySet cmdPalProvider, string classId, ILogger logger)
     {
         var extensionWrapper = new ExtensionWrapper(extension, classId);
 
@@ -271,7 +271,7 @@ public partial class ExtensionService : IExtensionService, IDisposable
                 else
                 {
                     // log warning  that extension declared unsupported extension interface
-                    Log_InvalidExtensionInterface(extension.DisplayName, supportedInterface.Key);
+                    Log_InvalidExtensionInterface(logger, extension.DisplayName, supportedInterface.Key);
                 }
             }
         }
@@ -416,7 +416,7 @@ public partial class ExtensionService : IExtensionService, IDisposable
     partial void Log_ErrorSignalingDispose(string extensionUniqueId, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Extension {ExtensionName} declared unsupported extension interface: {InterfaceName}")]
-    static partial void Log_InvalidExtensionInterface(string extensionName, string interfaceName);
+    static partial void Log_InvalidExtensionInterface(ILogger logger, string extensionName, string interfaceName);
 
     /*
     ///// <inheritdoc cref="IExtensionService.DisableExtensionIfWindowsFeatureNotAvailable(IExtensionWrapper)"/>

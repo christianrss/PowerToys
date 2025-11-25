@@ -4,6 +4,7 @@
 
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
@@ -19,8 +20,8 @@ public partial class StatusMessageViewModel : ExtensionObjectViewModel
 
     public bool HasProgress => Progress is not null;
 
-    public StatusMessageViewModel(IStatusMessage message, WeakReference<IPageContext> context)
-        : base(context)
+    public StatusMessageViewModel(IStatusMessage message, WeakReference<IPageContext> context, ILogger logger)
+        : base(context, logger)
     {
         Model = new(message);
     }
@@ -38,7 +39,7 @@ public partial class StatusMessageViewModel : ExtensionObjectViewModel
         var modelProgress = model.Progress;
         if (modelProgress is not null)
         {
-            Progress = new(modelProgress, this.PageContext);
+            Progress = new(modelProgress, this.PageContext, Logger);
             Progress.InitializeProperties();
             UpdateProperty(nameof(HasProgress));
         }
@@ -78,7 +79,7 @@ public partial class StatusMessageViewModel : ExtensionObjectViewModel
                 var modelProgress = model.Progress;
                 if (modelProgress is not null)
                 {
-                    Progress = new(modelProgress, this.PageContext);
+                    Progress = new(modelProgress, this.PageContext, Logger);
                     Progress.InitializeProperties();
                 }
                 else

@@ -4,6 +4,7 @@
 
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
@@ -38,8 +39,8 @@ public partial class CommandViewModel : ExtensionObjectViewModel
 
     public IReadOnlyDictionary<string, ExtensionObject<object>>? Properties => _properties?.AsReadOnly();
 
-    public CommandViewModel(ICommand? command, WeakReference<IPageContext> pageContext)
-        : base(pageContext)
+    public CommandViewModel(ICommand? command, WeakReference<IPageContext> pageContext, ILogger logger)
+        : base(pageContext, logger)
     {
         Model = new(command);
         Icon = new(null);

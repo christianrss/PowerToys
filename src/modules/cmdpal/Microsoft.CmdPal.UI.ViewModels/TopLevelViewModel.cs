@@ -12,7 +12,6 @@ using Microsoft.CmdPal.UI.ViewModels.Messages;
 using Microsoft.CmdPal.UI.ViewModels.Settings;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using Microsoft.Extensions.DependencyInjection;
 using Windows.Foundation;
 using WyHash;
 
@@ -22,7 +21,8 @@ public sealed partial class TopLevelViewModel : ObservableObject, IListItem
 {
     private readonly SettingsModel _settings;
     private readonly ProviderSettings _providerSettings;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly HotkeyManager _hotKeyManager;
+    private readonly AliasManager _aliasManager;
     private readonly CommandItemViewModel _commandItemViewModel;
 
     private readonly string _commandProviderId;
@@ -99,7 +99,7 @@ public sealed partial class TopLevelViewModel : ObservableObject, IListItem
         get => _hotkey;
         set
         {
-            _serviceProvider.GetService<HotkeyManager>()!.UpdateHotkey(Id, value);
+            _hotKeyManager.UpdateHotkey(Id, value);
             UpdateHotkey();
             UpdateTags();
             Save();
@@ -177,9 +177,11 @@ public sealed partial class TopLevelViewModel : ObservableObject, IListItem
         string commandProviderId,
         SettingsModel settings,
         ProviderSettings providerSettings,
-        IServiceProvider serviceProvider)
+        AliasManager aliasManager,
+        HotkeyManager hotkeyManager)
     {
-        _serviceProvider = serviceProvider;
+        _hotKeyManager = hotkeyManager;
+        _aliasManager = aliasManager;
         _settings = settings;
         _providerSettings = providerSettings;
         _commandProviderId = commandProviderId;
@@ -268,16 +270,15 @@ public sealed partial class TopLevelViewModel : ObservableObject, IListItem
                 ? null
                 : new CommandAlias(Alias.Alias, Alias.CommandId, Alias.IsDirect);
 
-        _serviceProvider.GetService<AliasManager>()!.UpdateAlias(Id, commandAlias);
+        _aliasManager.UpdateAlias(Id, commandAlias);
         UpdateTags();
     }
 
     private void FetchAliasFromAliasManager()
     {
-        var am = _serviceProvider.GetService<AliasManager>();
-        if (am is not null)
+        if (_aliasManager is not null)
         {
-            var commandAlias = am.AliasFromId(Id);
+            var commandAlias = _aliasManager.AliasFromId(Id);
             if (commandAlias is not null)
             {
                 // Decouple from the alias manager alias object

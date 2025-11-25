@@ -10,15 +10,13 @@ namespace Microsoft.CmdPal.UI.Settings;
 
 public sealed partial class GeneralPage : Page
 {
-    private readonly TaskScheduler _mainTaskScheduler = TaskScheduler.FromCurrentSynchronizationContext();
-
     private readonly SettingsViewModel? viewModel;
 
     public GeneralPage(SettingsViewModel settingsViewModel)
     {
         this.InitializeComponent();
 
-        viewModel = settings;
+        viewModel = settingsViewModel;
     }
 
     public string ApplicationVersion

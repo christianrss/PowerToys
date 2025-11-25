@@ -4,6 +4,7 @@
 
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
@@ -13,8 +14,8 @@ public partial class LogMessageViewModel : ExtensionObjectViewModel
 
     public string Message { get; private set; } = string.Empty;
 
-    public LogMessageViewModel(ILogMessage message, IPageContext context)
-        : base(context)
+    public LogMessageViewModel(ILogMessage message, IPageContext context, ILogger logger)
+        : base(context, logger)
     {
         _model = new(message);
     }

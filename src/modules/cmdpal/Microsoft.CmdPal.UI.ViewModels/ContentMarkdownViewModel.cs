@@ -5,11 +5,12 @@
 using Microsoft.CmdPal.Core.ViewModels;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.UI.ViewModels;
 
-public partial class ContentMarkdownViewModel(IMarkdownContent _markdown, WeakReference<IPageContext> context) :
-    ContentViewModel(context)
+public partial class ContentMarkdownViewModel(IMarkdownContent _markdown, WeakReference<IPageContext> context, ILogger logger) :
+    ContentViewModel(context, logger)
 {
     public ExtensionObject<IMarkdownContent> Model { get; } = new(_markdown);
 

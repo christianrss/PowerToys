@@ -17,7 +17,6 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
     public ExtensionObject<ICommandItem> Model => _commandItemModel;
 
     private readonly ExtensionObject<ICommandItem> _commandItemModel = new(null);
-    private readonly ILogger _logger;
     private CommandContextItemViewModel? _defaultCommandContextItemViewModel;
 
     internal InitializedState Initialized { get; private set; } = InitializedState.Uninitialized;
@@ -87,12 +86,11 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
         _errorIcon.InitializeProperties();
     }
 
-    public CommandItemViewModel(ExtensionObject<ICommandItem> item, WeakReference<IPageContext> errorContext, ILogger<CommandItemViewModel> logger)
-        : base(errorContext)
+    public CommandItemViewModel(ExtensionObject<ICommandItem> item, WeakReference<IPageContext> errorContext, ILogger logger)
+        : base(errorContext, logger)
     {
         _commandItemModel = item;
-        _logger = logger;
-        Command = new(null, errorContext);
+        Command = new(null, errorContext, Logger);
     }
 
     public void FastInitializeProperties()
@@ -108,7 +106,7 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
             return;
         }
 
-        Command = new(model.Command, PageContext);
+        Command = new(model.Command, PageContext, Logger);
         Command.FastInitializeProperties();
 
         _itemTitle = model.Title;
@@ -186,7 +184,7 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
             MoreCommands = more
                 .Select<IContextItem, IContextItemViewModel>(item =>
                 {
-                    return item is ICommandContextItem contextItem ? new CommandContextItemViewModel(contextItem, PageContext) : new SeparatorViewModel();
+                    return item is ICommandContextItem contextItem ? new CommandContextItemViewModel(contextItem, PageContext, Logger) : new SeparatorViewModel();
                 })
                 .ToList();
         }
@@ -203,7 +201,7 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
 
         if (!string.IsNullOrEmpty(model.Command?.Name))
         {
-            _defaultCommandContextItemViewModel = new CommandContextItemViewModel(new CommandContextItem(model.Command!), PageContext)
+            _defaultCommandContextItemViewModel = new CommandContextItemViewModel(new CommandContextItem(model.Command!), PageContext, Logger)
             {
                 _itemTitle = Name,
                 Subtitle = Subtitle,
@@ -233,8 +231,8 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
         }
         catch (Exception ex)
         {
-            Log_ErrorFastInitializingCommandItemViewModel(ex);
-            Command = new(null, PageContext);
+            Log_ErrorFastInitializingCommandItemViewModel(Logger, ex);
+            Command = new(null, PageContext, Logger);
             _itemTitle = "Error";
             Subtitle = "Item failed to load";
             MoreCommands = [];
@@ -255,7 +253,7 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
         catch (Exception ex)
         {
             Initialized |= InitializedState.Error;
-            Log_ErrorSlowInitializingCommandItemViewModel(ex);
+            Log_ErrorSlowInitializingCommandItemViewModel(Logger, ex);
         }
 
         return false;
@@ -270,8 +268,8 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
         }
         catch (Exception ex)
         {
-            Log_ErrorSlowInitializingCommandItemViewModel(ex);
-            Command = new(null, PageContext);
+            Log_ErrorSlowInitializingCommandItemViewModel(Logger, ex);
+            Command = new(null, PageContext, Logger);
             _itemTitle = "Error";
             Subtitle = "Item failed to load";
             MoreCommands = [];
@@ -306,7 +304,7 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
         {
             case nameof(Command):
                 Command.PropertyChanged -= Command_PropertyChanged;
-                Command = new(model.Command, PageContext);
+                Command = new(model.Command, PageContext, Logger);
                 Command.InitializeProperties();
                 Command.PropertyChanged += Command_PropertyChanged;
 
@@ -353,7 +351,7 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
                     var newContextMenu = more
                         .Select<IContextItem, IContextItemViewModel>(item =>
                         {
-                            return item is ICommandContextItem contextItem ? new CommandContextItemViewModel(contextItem, PageContext) : new SeparatorViewModel();
+                            return item is ICommandContextItem contextItem ? new CommandContextItemViewModel(contextItem, PageContext, Logger) : new SeparatorViewModel();
                         })
                         .ToList();
                     lock (MoreCommands)
@@ -468,13 +466,13 @@ public partial class CommandItemViewModel : ExtensionObjectViewModel, ICommandBa
     }
 
     [LoggerMessage(level: LogLevel.Error, message: "error fast initializing CommandItemViewModel")]
-    partial void Log_ErrorFastInitializingCommandItemViewModel(Exception ex);
+    static partial void Log_ErrorFastInitializingCommandItemViewModel(ILogger logger, Exception ex);
 
     [LoggerMessage(level: LogLevel.Error, message: "error slow initializing CommandItemViewModel")]
-    partial void Log_ErrorSlowInitializingCommandItemViewModel(Exception ex);
+    static partial void Log_ErrorSlowInitializingCommandItemViewModel(ILogger logger, Exception ex);
 
     [LoggerMessage(level: LogLevel.Error, message: "error initializing CommandItemViewModel")]
-    partial void Log_ErrorInitializingCommandItemViewModel(Exception ex);
+    static partial void Log_ErrorInitializingCommandItemViewModel(ILogger logger, Exception ex);
 }
 
 [Flags]

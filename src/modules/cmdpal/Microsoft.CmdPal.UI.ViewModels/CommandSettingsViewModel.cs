@@ -2,14 +2,14 @@
 // The Microsoft Corporation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.CmdPal.Core.Common;
 using Microsoft.CmdPal.Core.ViewModels;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.UI.ViewModels;
 
-public partial class CommandSettingsViewModel(ICommandSettings? _unsafeSettings, CommandProviderWrapper provider, TaskScheduler mainThread)
+public partial class CommandSettingsViewModel(ICommandSettings? _unsafeSettings, CommandProviderWrapper provider, TaskScheduler mainThread, ILogger logger)
 {
     private readonly ExtensionObject<ICommandSettings> _model = new(_unsafeSettings);
 
@@ -31,7 +31,7 @@ public partial class CommandSettingsViewModel(ICommandSettings? _unsafeSettings,
 
         if (model.SettingsPage is not null)
         {
-            SettingsPage = new CommandPaletteContentPageViewModel(model.SettingsPage, mainThread, provider.ExtensionHost);
+            SettingsPage = new CommandPaletteContentPageViewModel(model.SettingsPage, mainThread, provider.ExtensionHost, logger);
             SettingsPage.InitializeProperties();
         }
     }
@@ -44,7 +44,7 @@ public partial class CommandSettingsViewModel(ICommandSettings? _unsafeSettings,
         }
         catch (Exception ex)
         {
-            CoreLogger.LogError($"Failed to load settings page", ex: ex);
+            Log_FailedToLoadSettingsPage(ex);
         }
 
         Initialized = true;
@@ -58,4 +58,7 @@ public partial class CommandSettingsViewModel(ICommandSettings? _unsafeSettings,
             TaskCreationOptions.None,
             mainThread);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to load settings page")]
+    partial void Log_FailedToLoadSettingsPage(Exception ex);
 }

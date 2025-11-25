@@ -4,10 +4,11 @@
 
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
-public partial class DetailsViewModel(IDetails _details, WeakReference<IPageContext> context) : ExtensionObjectViewModel(context)
+public partial class DetailsViewModel(IDetails _details, WeakReference<IPageContext> context, ILogger logger) : ExtensionObjectViewModel(context, logger)
 {
     private readonly ExtensionObject<IDetails> _detailsModel = new(_details);
 
@@ -47,10 +48,10 @@ public partial class DetailsViewModel(IDetails _details, WeakReference<IPageCont
             {
                 DetailsElementViewModel? vm = element.Data switch
                 {
-                    IDetailsSeparator => new DetailsSeparatorViewModel(element, this.PageContext),
-                    IDetailsLink => new DetailsLinkViewModel(element, this.PageContext),
-                    IDetailsCommands => new DetailsCommandsViewModel(element, this.PageContext),
-                    IDetailsTags => new DetailsTagsViewModel(element, this.PageContext),
+                    IDetailsSeparator => new DetailsSeparatorViewModel(element, this.PageContext, Logger),
+                    IDetailsLink => new DetailsLinkViewModel(element, this.PageContext, Logger),
+                    IDetailsCommands => new DetailsCommandsViewModel(element, this.PageContext, Logger),
+                    IDetailsTags => new DetailsTagsViewModel(element, this.PageContext, Logger),
                     _ => null,
                 };
                 if (vm is not null)

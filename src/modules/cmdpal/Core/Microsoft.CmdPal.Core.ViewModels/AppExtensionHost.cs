@@ -102,7 +102,7 @@ public abstract partial class AppExtensionHost : IExtensionHost
 
     public void ProcessLogMessage(ILogMessage message)
     {
-        var vm = new LogMessageViewModel(message, _globalLogPageContext);
+        var vm = new LogMessageViewModel(message, _globalLogPageContext, _logger);
         vm.SafeInitializePropertiesSynchronous();
 
         Task.Factory.StartNew(
@@ -133,7 +133,7 @@ public abstract partial class AppExtensionHost : IExtensionHost
             return;
         }
 
-        var vm = new StatusMessageViewModel(message, new(_globalLogPageContext));
+        var vm = new StatusMessageViewModel(message, new(_globalLogPageContext), _logger);
         vm.SafeInitializePropertiesSynchronous();
 
         Task.Factory.StartNew(
@@ -164,6 +164,8 @@ public abstract partial class AppExtensionHost : IExtensionHost
     }
 
     public abstract string? GetExtensionDisplayName();
+
+    public abstract AppExtensionHost GetHostForCommand(object? context, AppExtensionHost? currentHost);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "{Message}")]
     partial void Log_DebugMessage(string message);

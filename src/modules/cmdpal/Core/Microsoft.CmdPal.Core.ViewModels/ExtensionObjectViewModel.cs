@@ -3,23 +3,29 @@
 // See the LICENSE file in the project root for more information.
 
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.CmdPal.Core.Common;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
 public abstract partial class ExtensionObjectViewModel : ObservableObject
 {
+    private readonly ILogger _logger;
+
+    public ILogger Logger => _logger;
+
     public WeakReference<IPageContext> PageContext { get; set; }
 
-    internal ExtensionObjectViewModel(IPageContext? context)
+    internal ExtensionObjectViewModel(IPageContext? context, ILogger logger)
     {
         var realContext = context ?? (this is IPageContext c ? c : throw new ArgumentException("You need to pass in an IErrorContext"));
+        _logger = logger;
         PageContext = new(realContext);
     }
 
-    internal ExtensionObjectViewModel(WeakReference<IPageContext> context)
+    internal ExtensionObjectViewModel(WeakReference<IPageContext> context, ILogger logger)
     {
         PageContext = context;
+        _logger = logger;
     }
 
     public async virtual Task InitializePropertiesAsync()
@@ -114,7 +120,10 @@ public abstract partial class ExtensionObjectViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            CoreLogger.LogDebug(ex.ToString());
+            Log_CleanupException(ex);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Debug)]
+    partial void Log_CleanupException(Exception exception);
 }

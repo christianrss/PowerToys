@@ -7,19 +7,26 @@ using System.Text.Json;
 using AdaptiveCards.ObjectModel.WinUI3;
 using AdaptiveCards.Templating;
 using CommunityToolkit.Mvvm.Messaging;
-using ManagedCommon;
 using Microsoft.CmdPal.Core.ViewModels;
 using Microsoft.CmdPal.Core.ViewModels.Messages;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
+using Microsoft.Extensions.Logging;
 using Windows.Data.Json;
 
 namespace Microsoft.CmdPal.UI.ViewModels;
 
-public partial class ContentFormViewModel(IFormContent _form, WeakReference<IPageContext> context) :
-    ContentViewModel(context)
+public partial class ContentFormViewModel : ContentViewModel
 {
-    private readonly ExtensionObject<IFormContent> _formModel = new(_form);
+    private readonly ExtensionObject<IFormContent> _formModel;
+    private readonly ILogger _logger;
+
+    public ContentFormViewModel(IFormContent _form, WeakReference<IPageContext> context, ILogger logger)
+        : base(context, logger)
+    {
+        _formModel = new(_form);
+        _logger = logger;
+    }
 
     // Remember - "observable" properties from the model (via PropChanged)
     // cannot be marked [ObservableProperty]
@@ -38,7 +45,8 @@ public partial class ContentFormViewModel(IFormContent _form, WeakReference<IPag
         string templateJson,
         string dataJson,
         out AdaptiveCardParseResult? card,
-        out Exception? error)
+        out Exception? error,
+        ILogger logger)
     {
         card = null;
         error = null;
@@ -52,7 +60,7 @@ public partial class ContentFormViewModel(IFormContent _form, WeakReference<IPag
         }
         catch (Exception ex)
         {
-            Logger.LogError("Error building card from template", ex);
+            Log_ErrorBuildindCard(logger, ex);
             error = ex;
             return false;
         }
@@ -70,7 +78,7 @@ public partial class ContentFormViewModel(IFormContent _form, WeakReference<IPag
         StateJson = model.StateJson;
         DataJson = model.DataJson;
 
-        if (TryBuildCard(TemplateJson, DataJson, out var builtCard, out var renderingError))
+        if (TryBuildCard(TemplateJson, DataJson, out var builtCard, out var renderingError, _logger))
         {
             Card = builtCard;
             UpdateProperty(nameof(Card));
@@ -87,7 +95,7 @@ public partial class ContentFormViewModel(IFormContent _form, WeakReference<IPag
     }
     """;
 
-        if (TryBuildCard(ErrorCardJson, errorPayload, out var errorCard, out var _))
+        if (TryBuildCard(ErrorCardJson, errorPayload, out var errorCard, out var _, _logger))
         {
             Card = errorCard;
             UpdateProperty(nameof(Card));
@@ -173,4 +181,7 @@ public partial class ContentFormViewModel(IFormContent _form, WeakReference<IPag
     ]
 }
 """;
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error building adaptive card for form.")]
+    static partial void Log_ErrorBuildindCard(ILogger logger, Exception ex);
 }

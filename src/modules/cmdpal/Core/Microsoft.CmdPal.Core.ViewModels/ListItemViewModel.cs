@@ -7,13 +7,14 @@ using Microsoft.CmdPal.Core.ViewModels.Commands;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
-public partial class ListItemViewModel(IListItem model, WeakReference<IPageContext> context)
-    : CommandItemViewModel(new(model), context)
+// Fix for CS9107: Do not capture 'logger' in the primary constructor; use a regular constructor instead.
+public partial class ListItemViewModel : CommandItemViewModel
 {
-    public new ExtensionObject<IListItem> Model { get; } = new(model);
+    public new ExtensionObject<IListItem> Model { get; }
 
     public List<TagViewModel>? Tags { get; set; }
 
@@ -31,6 +32,15 @@ public partial class ListItemViewModel(IListItem model, WeakReference<IPageConte
     public bool HasDetails => Details is not null;
 
     public string AccessibleName { get; private set; } = string.Empty;
+
+    private readonly ILogger _logger;
+
+    public ListItemViewModel(IListItem model, WeakReference<IPageContext> context, ILogger logger)
+        : base(new(model), context, logger)
+    {
+        Model = new(model);
+        _logger = logger;
+    }
 
     public override void InitializeProperties()
     {
@@ -69,7 +79,7 @@ public partial class ListItemViewModel(IListItem model, WeakReference<IPageConte
         var extensionDetails = model.Details;
         if (extensionDetails is not null)
         {
-            Details = new(extensionDetails, PageContext);
+            Details = new(extensionDetails, PageContext, Logger);
             Details.InitializeProperties();
             UpdateProperty(nameof(Details));
             UpdateProperty(nameof(HasDetails));
@@ -104,7 +114,7 @@ public partial class ListItemViewModel(IListItem model, WeakReference<IPageConte
                 break;
             case nameof(Details):
                 var extensionDetails = model.Details;
-                Details = extensionDetails is not null ? new(extensionDetails, PageContext) : null;
+                Details = extensionDetails is not null ? new(extensionDetails, PageContext, Logger) : null;
                 Details?.InitializeProperties();
                 UpdateProperty(nameof(Details));
                 UpdateProperty(nameof(HasDetails));
@@ -146,7 +156,7 @@ public partial class ListItemViewModel(IListItem model, WeakReference<IPageConte
                 // Create the view model for the show details command
                 var showDetailsCommand = new ShowDetailsCommand(Details);
                 var showDetailsContextItem = new CommandContextItem(showDetailsCommand);
-                var showDetailsContextItemViewModel = new CommandContextItemViewModel(showDetailsContextItem, PageContext);
+                var showDetailsContextItemViewModel = new CommandContextItemViewModel(showDetailsContextItem, PageContext, _logger);
                 showDetailsContextItemViewModel.SlowInitializeProperties();
                 MoreCommands.Add(showDetailsContextItemViewModel);
             }
@@ -180,7 +190,7 @@ public partial class ListItemViewModel(IListItem model, WeakReference<IPageConte
             // Create the view model for the show details command
             var showDetailsCommand = new ShowDetailsCommand(Details);
             var showDetailsContextItem = new CommandContextItem(showDetailsCommand);
-            var showDetailsContextItemViewModel = new CommandContextItemViewModel(showDetailsContextItem, PageContext);
+            var showDetailsContextItemViewModel = new CommandContextItemViewModel(showDetailsContextItem, PageContext, _logger);
             showDetailsContextItemViewModel.SlowInitializeProperties();
             MoreCommands.Add(showDetailsContextItemViewModel);
 
@@ -193,7 +203,7 @@ public partial class ListItemViewModel(IListItem model, WeakReference<IPageConte
     {
         var newTags = newTagsFromModel?.Select(t =>
         {
-            var vm = new TagViewModel(t, PageContext);
+            var vm = new TagViewModel(t, PageContext, Logger);
             vm.InitializeProperties();
             return vm;
         })

@@ -21,6 +21,7 @@ public sealed partial class ContextMenu : UserControl,
     IRecipient<UpdateCommandBarMessage>,
     IRecipient<TryCommandKeybindingMessage>
 {
+    // Fix for CS8618: Mark ViewModel property as required to ensure it is initialized by the constructor.
     public ContextMenuViewModel ViewModel { get; } = new();
 
     public ContextMenu()

@@ -18,7 +18,7 @@ public partial class ShellViewModel : ObservableObject,
     IRecipient<HandleCommandResultMessage>
 {
     private readonly IRootPageService _rootPageService;
-    private readonly IAppHostService _appHostService;
+    private readonly AppExtensionHost _appHost;
     private readonly TaskScheduler _scheduler;
     private readonly IPageViewModelFactoryService _pageViewModelFactory;
     private readonly ILogger _logger;
@@ -88,17 +88,17 @@ public partial class ShellViewModel : ObservableObject,
         TaskScheduler scheduler,
         IRootPageService rootPageService,
         IPageViewModelFactoryService pageViewModelFactory,
-        IAppHostService appHostService,
+        AppExtensionHost appHost,
         ILogger<ShellViewModel> logger)
     {
         _pageViewModelFactory = pageViewModelFactory;
         _scheduler = scheduler;
         _rootPageService = rootPageService;
-        _appHostService = appHostService;
+        _appHost = appHost;
         _logger = logger;
 
-        NullPage = new NullPageViewModel(_scheduler, appHostService.GetDefaultHost());
-        _currentPage = new LoadingPageViewModel(null, _scheduler, appHostService.GetDefaultHost());
+        NullPage = new NullPageViewModel(_scheduler, _appHost, _logger);
+        _currentPage = new LoadingPageViewModel(null, _scheduler, _appHost, _logger);
 
         // Register to receive messages
         WeakReferenceMessenger.Default.Register<PerformCommandMessage>(this);
@@ -259,7 +259,7 @@ public partial class ShellViewModel : ObservableObject,
             return;
         }
 
-        var host = _appHostService.GetHostForCommand(message.Context, CurrentPage.ExtensionHost);
+        var host = _appHost.GetHostForCommand(message.Context, CurrentPage.ExtensionHost);
 
         _rootPageService.OnPerformCommand(message.Context, !CurrentPage.IsNested, host);
 

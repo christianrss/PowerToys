@@ -6,12 +6,12 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
-public partial class DetailsLinkViewModel(
-    IDetailsElement _detailsElement,
-    WeakReference<IPageContext> context) : DetailsElementViewModel(_detailsElement, context)
+public partial class DetailsLinkViewModel(IDetailsElement _detailsElement, WeakReference<IPageContext> context, ILogger logger)
+    : DetailsElementViewModel(_detailsElement, context, logger)
 {
     private static readonly string[] _initProperties = [
         nameof(Text),

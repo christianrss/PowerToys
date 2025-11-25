@@ -5,12 +5,12 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
-using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-public partial class CommandContextItemViewModel(ICommandContextItem contextItem, WeakReference<IPageContext> context) : CommandItemViewModel(new(contextItem), context), IContextItemViewModel
+public partial class CommandContextItemViewModel(ICommandContextItem contextItem, WeakReference<IPageContext> context, ILogger logger) : CommandItemViewModel(new(contextItem), context, logger), IContextItemViewModel
 {
     private readonly KeyChord nullKeyChord = new(0, 0, 0);
 

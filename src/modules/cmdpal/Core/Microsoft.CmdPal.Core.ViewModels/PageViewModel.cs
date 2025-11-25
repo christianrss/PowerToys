@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.CmdPal.Core.Common.Helpers;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
@@ -76,8 +77,8 @@ public partial class PageViewModel : ExtensionObjectViewModel, IPageContext
 
     public IconInfoViewModel Icon { get; protected set; }
 
-    public PageViewModel(IPage? model, TaskScheduler scheduler, AppExtensionHost extensionHost)
-        : base((IPageContext?)null)
+    public PageViewModel(IPage? model, TaskScheduler scheduler, AppExtensionHost extensionHost, ILogger logger)
+        : base((IPageContext?)null, logger)
     {
         _pageModel = new(model);
         Scheduler = scheduler;
@@ -257,23 +258,4 @@ public partial class PageViewModel : ExtensionObjectViewModel, IPageContext
             model.PropChanged -= Model_PropChanged;
         }
     }
-}
-
-public interface IPageContext
-{
-    void ShowException(Exception ex, string? extensionHint = null);
-
-    TaskScheduler Scheduler { get; }
-}
-
-public interface IPageViewModelFactoryService
-{
-    /// <summary>
-    /// Creates a new instance of the page view model for the given page type.
-    /// </summary>
-    /// <param name="page">The page for which to create the view model.</param>
-    /// <param name="nested">Indicates whether the page is not the top-level page.</param>
-    /// <param name="host">The command palette host that will host the page (for status messages)</param>
-    /// <returns>A new instance of the page view model.</returns>
-    PageViewModel? TryCreatePageViewModel(IPage page, bool nested, AppExtensionHost host);
 }

@@ -7,11 +7,12 @@ using Microsoft.CmdPal.Core.ViewModels;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.UI.ViewModels;
 
-public partial class ContentTreeViewModel(ITreeContent _tree, WeakReference<IPageContext> context) :
-    ContentViewModel(context)
+public partial class ContentTreeViewModel(ITreeContent _tree, WeakReference<IPageContext> context, ILogger logger) :
+    ContentViewModel(context, logger)
 {
     public ExtensionObject<ITreeContent> Model { get; } = new(_tree);
 
@@ -55,9 +56,9 @@ public partial class ContentTreeViewModel(ITreeContent _tree, WeakReference<IPag
     {
         ContentViewModel? viewModel = content switch
         {
-            IFormContent form => new ContentFormViewModel(form, context),
-            IMarkdownContent markdown => new ContentMarkdownViewModel(markdown, context),
-            ITreeContent tree => new ContentTreeViewModel(tree, context),
+            IFormContent form => new ContentFormViewModel(form, context, Logger),
+            IMarkdownContent markdown => new ContentMarkdownViewModel(markdown, context, Logger),
+            ITreeContent tree => new ContentTreeViewModel(tree, context, Logger),
             _ => null,
         };
         return viewModel;

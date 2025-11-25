@@ -11,12 +11,14 @@ using Microsoft.CmdPal.Core.ViewModels.Messages;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
 
 public partial class ContentPageViewModel : PageViewModel, ICommandBarContext
 {
     private readonly ExtensionObject<IContentPage> _model;
+    private readonly ILogger _logger;
 
     [ObservableProperty]
     public partial ObservableCollection<ContentViewModel> Content { get; set; } = [];
@@ -47,10 +49,11 @@ public partial class ContentPageViewModel : PageViewModel, ICommandBarContext
 
     // Remember - "observable" properties from the model (via PropChanged)
     // cannot be marked [ObservableProperty]
-    public ContentPageViewModel(IContentPage model, TaskScheduler scheduler, AppExtensionHost host)
-        : base(model, scheduler, host)
+    public ContentPageViewModel(IContentPage model, TaskScheduler scheduler, AppExtensionHost host, ILogger logger)
+        : base(model, scheduler, host, logger)
     {
         _model = new(model);
+        _logger = logger;
     }
 
     // TODO: Does this need to hop to a _different_ thread, so that we don't block the extension while we're fetching?
@@ -115,7 +118,7 @@ public partial class ContentPageViewModel : PageViewModel, ICommandBarContext
                 {
                     if (item is ICommandContextItem contextItem)
                     {
-                        return new CommandContextItemViewModel(contextItem, PageContext);
+                        return new CommandContextItemViewModel(contextItem, PageContext, _logger);
                     }
                     else
                     {
@@ -135,7 +138,7 @@ public partial class ContentPageViewModel : PageViewModel, ICommandBarContext
         var extensionDetails = model.Details;
         if (extensionDetails is not null)
         {
-            Details = new(extensionDetails, PageContext);
+            Details = new(extensionDetails, PageContext, _logger);
             Details.InitializeProperties();
         }
 
@@ -174,7 +177,7 @@ public partial class ContentPageViewModel : PageViewModel, ICommandBarContext
                             {
                                 if (item is ICommandContextItem contextItem)
                                 {
-                                    return new CommandContextItemViewModel(contextItem, PageContext) as IContextItemViewModel;
+                                    return new CommandContextItemViewModel(contextItem, PageContext, _logger) as IContextItemViewModel;
                                 }
                                 else
                                 {
@@ -216,7 +219,7 @@ public partial class ContentPageViewModel : PageViewModel, ICommandBarContext
                 break;
             case nameof(Details):
                 var extensionDetails = model.Details;
-                Details = extensionDetails is not null ? new(extensionDetails, PageContext) : null;
+                Details = extensionDetails is not null ? new(extensionDetails, PageContext, _logger) : null;
                 UpdateDetails();
                 break;
         }

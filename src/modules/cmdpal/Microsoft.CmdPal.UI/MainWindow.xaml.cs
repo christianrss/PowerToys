@@ -16,7 +16,7 @@ using Microsoft.CmdPal.UI.Helpers;
 using Microsoft.CmdPal.UI.Messages;
 using Microsoft.CmdPal.UI.ViewModels;
 using Microsoft.CmdPal.UI.ViewModels.Messages;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.PowerToys.Telemetry;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Composition.SystemBackdrops;
@@ -58,6 +58,9 @@ public sealed partial class MainWindow : WindowEx,
     private readonly KeyboardListener _keyboardListener;
     private readonly LocalKeyboardListener _localKeyboardListener;
     private readonly HiddenOwnerWindowBehavior _hiddenOwnerBehavior = new();
+    private readonly SettingsModel _settingsModel;
+    private readonly TrayIconService _trayIconService;
+    private readonly IExtensionService _extensionService;
     private bool _ignoreHotKeyWhenFullScreen = true;
 
     private DesktopAcrylicController? _acrylicController;
@@ -65,21 +68,24 @@ public sealed partial class MainWindow : WindowEx,
 
     private WindowPosition _currentWindowPosition = new();
 
-    public MainWindow()
+    public MainWindow(SettingsModel settingsModel, TrayIconService trayIconService, IExtensionService extensionService, ILogger logger)
     {
         InitializeComponent();
 
+        _settingsModel = settingsModel;
+        _trayIconService = trayIconService;
+        _extensionService = extensionService;
         _hwnd = new HWND(WinRT.Interop.WindowNative.GetWindowHandle(this).ToInt32());
-
-        unsafe
-        {
-            CommandPaletteHost.SetHostHwnd((ulong)_hwnd.Value);
-        }
 
         _hiddenOwnerBehavior.ShowInTaskbar(this, Debugger.IsAttached);
 
         _keyboardListener = new KeyboardListener();
         _keyboardListener.Start();
+
+        unsafe
+        {
+            CommandPaletteHost.SetHostHwnd((ulong)_hwnd.Value);
+        }
 
         _keyboardListener.SetProcessCommand(new CmdPalKeyboardService.ProcessCommand(HandleSummon));
 
@@ -116,7 +122,7 @@ public sealed partial class MainWindow : WindowEx,
 
         // Load our settings, and then also wire up a settings changed handler
         HotReloadSettings();
-        App.Current.Services.GetService<SettingsModel>()!.SettingsChanged += SettingsChangedHandler;
+        _settingsModel.SettingsChanged += SettingsChangedHandler;
 
         // Make sure that we update the acrylic theme when the OS theme changes
         RootShellPage.ActualThemeChanged += (s, e) => DispatcherQueue.TryEnqueue(UpdateAcrylic);
@@ -127,7 +133,7 @@ public sealed partial class MainWindow : WindowEx,
             Summon(string.Empty);
         });
 
-        _localKeyboardListener = new LocalKeyboardListener();
+        _localKeyboardListener = new LocalKeyboardListener(logger);
         _localKeyboardListener.KeyPressed += LocalKeyboardListener_OnKeyPressed;
         _localKeyboardListener.Start();
 
@@ -160,8 +166,7 @@ public sealed partial class MainWindow : WindowEx,
 
     private void RestoreWindowPosition()
     {
-        var settings = App.Current.Services.GetService<SettingsModel>();
-        if (settings?.LastWindowPosition is not WindowPosition savedPosition)
+        if (_settingsModel.LastWindowPosition is not WindowPosition savedPosition)
         {
             PositionCentered();
             return;
@@ -218,12 +223,10 @@ public sealed partial class MainWindow : WindowEx,
 
     private void HotReloadSettings()
     {
-        var settings = App.Current.Services.GetService<SettingsModel>()!;
+        SetupHotkey(_settingsModel);
+        _trayIconService.SetupTrayIcon(_settingsModel.ShowSystemTrayIcon);
 
-        SetupHotkey(settings);
-        App.Current.Services.GetService<TrayIconService>()!.SetupTrayIcon(settings.ShowSystemTrayIcon);
-
-        _ignoreHotKeyWhenFullScreen = settings.IgnoreShortcutWhenFullscreen;
+        _ignoreHotKeyWhenFullScreen = _settingsModel.IgnoreShortcutWhenFullscreen;
     }
 
     // We want to use DesktopAcrylicKind.Thin and custom colors as this is the default material
@@ -378,9 +381,7 @@ public sealed partial class MainWindow : WindowEx,
 
     public void Receive(ShowWindowMessage message)
     {
-        var settings = App.Current.Services.GetService<SettingsModel>()!;
-
-        ShowHwnd(message.Hwnd, settings.SummonOn);
+        ShowHwnd(message.Hwnd, _settingsModel.SummonOn);
     }
 
     public void Receive(HideWindowMessage message)
@@ -467,13 +468,11 @@ public sealed partial class MainWindow : WindowEx,
 
     internal void MainWindow_Closed(object sender, WindowEventArgs args)
     {
-        var serviceProvider = App.Current.Services;
         UpdateWindowPositionInMemory();
 
-        var settings = serviceProvider.GetService<SettingsModel>();
-        if (settings is not null)
+        if (_settingsModel is not null)
         {
-            settings.LastWindowPosition = new WindowPosition
+            _settingsModel.LastWindowPosition = new WindowPosition
             {
                 X = _currentWindowPosition.X,
                 Y = _currentWindowPosition.Y,
@@ -481,13 +480,11 @@ public sealed partial class MainWindow : WindowEx,
                 Height = _currentWindowPosition.Height,
             };
 
-            SettingsModel.SaveSettings(settings);
+            SettingsModel.SaveSettings(_settingsModel);
         }
 
-        var extensionService = serviceProvider.GetService<IExtensionService>()!;
-        extensionService.SignalStopExtensionsAsync();
-
-        App.Current.Services.GetService<TrayIconService>()!.Destroy();
+        _extensionService.SignalStopExtensionsAsync();
+        _trayIconService.Destroy();
 
         // WinUI bug is causing a crash on shutdown when FailFastOnErrors is set to true (#51773592).
         // Workaround by turning it off before shutdown.
@@ -624,8 +621,7 @@ public sealed partial class MainWindow : WindowEx,
                         }
                         else if (uri.StartsWith("x-cmdpal://reload", StringComparison.OrdinalIgnoreCase))
                         {
-                            var settings = App.Current.Services.GetService<SettingsModel>();
-                            if (settings?.AllowExternalReload == true)
+                            if (_settingsModel.AllowExternalReload == true)
                             {
                                 Logger.LogInfo("External Reload triggered");
                                 WeakReferenceMessenger.Default.Send<ReloadCommandsMessage>(new());

@@ -25,7 +25,7 @@ internal class TelemetryService :
 
     public void Receive(CmdPalInvokeResultMessage message)
     {
-        PowerToysTelemetry.Log.WriteEvent(new CmdPalInvokeResultEvent(message.Kind));
+        PowerToysTelemetry.Log.WriteEvent(new InvokeResultEvent(message.Kind));
     }
 
     public void Receive(BeginInvokeMessage message)

@@ -11,6 +11,7 @@ using Microsoft.CmdPal.Core.ViewModels.Messages;
 using Microsoft.CmdPal.Core.ViewModels.Models;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.Extensions.Logging;
 using Windows.Foundation;
 
 namespace Microsoft.CmdPal.Core.ViewModels;
@@ -19,6 +20,7 @@ public partial class ListViewModel : PageViewModel, IDisposable
 {
     // private readonly HashSet<ListItemViewModel> _itemCache = [];
     private readonly TaskFactory filterTaskFactory = new(new ConcurrentExclusiveSchedulerPair().ExclusiveScheduler);
+    private readonly ILogger _logger;
 
     // TODO: Do we want a base "ItemsPageViewModel" for anything that's going to have items?
 
@@ -90,11 +92,12 @@ public partial class ListViewModel : PageViewModel, IDisposable
         }
     }
 
-    public ListViewModel(IListPage model, TaskScheduler scheduler, AppExtensionHost host)
-        : base(model, scheduler, host)
+    public ListViewModel(IListPage model, TaskScheduler scheduler, AppExtensionHost host, ILogger logger)
+        : base(model, scheduler, host, logger)
     {
         _model = new(model);
-        EmptyContent = new(new(null), PageContext);
+        EmptyContent = new(new(null), PageContext, logger);
+        _logger = logger;
     }
 
     private void FiltersPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -232,7 +235,7 @@ public partial class ListViewModel : PageViewModel, IDisposable
                     return;
                 }
 
-                ListItemViewModel viewModel = new(item, new(this));
+                ListItemViewModel viewModel = new(item, new(this), _logger);
 
                 // If an item fails to load, silently ignore it.
                 if (viewModel.SafeFastInit())
@@ -594,11 +597,11 @@ public partial class ListViewModel : PageViewModel, IDisposable
         UpdateProperty(nameof(SearchText));
         UpdateProperty(nameof(InitialSearchText));
 
-        EmptyContent = new(new(model.EmptyContent), PageContext);
+        EmptyContent = new(new(model.EmptyContent), PageContext, _logger);
         EmptyContent.SlowInitializeProperties();
 
         Filters?.PropertyChanged -= FiltersPropertyChanged;
-        Filters = new(new(model.Filters), PageContext);
+        Filters = new(new(model.Filters), PageContext, _logger);
         Filters?.PropertyChanged += FiltersPropertyChanged;
 
         Filters?.InitializeProperties();
@@ -696,12 +699,12 @@ public partial class ListViewModel : PageViewModel, IDisposable
                 SearchText = model.SearchText;
                 break;
             case nameof(EmptyContent):
-                EmptyContent = new(new(model.EmptyContent), PageContext);
+                EmptyContent = new(new(model.EmptyContent), PageContext, _logger);
                 EmptyContent.SlowInitializeProperties();
                 break;
             case nameof(Filters):
                 Filters?.PropertyChanged -= FiltersPropertyChanged;
-                Filters = new(new(model.Filters), PageContext);
+                Filters = new(new(model.Filters), PageContext, _logger);
                 Filters?.PropertyChanged += FiltersPropertyChanged;
                 Filters?.InitializeProperties();
                 break;
@@ -751,7 +754,7 @@ public partial class ListViewModel : PageViewModel, IDisposable
         base.UnsafeCleanup();
 
         EmptyContent?.SafeCleanup();
-        EmptyContent = new(new(null), PageContext); // necessary?
+        EmptyContent = new(new(null), PageContext, _logger); // necessary?
 
         _cancellationTokenSource?.Cancel();
         filterCancellationTokenSource?.Cancel();

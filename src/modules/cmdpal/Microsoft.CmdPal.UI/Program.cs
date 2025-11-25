@@ -21,6 +21,7 @@ using Microsoft.CmdPal.Ext.WindowsSettings;
 using Microsoft.CmdPal.Ext.WindowsTerminal;
 using Microsoft.CmdPal.Ext.WindowWalker;
 using Microsoft.CmdPal.Ext.WinGet;
+using Microsoft.CmdPal.UI.Controls;
 using Microsoft.CmdPal.UI.Events;
 using Microsoft.CmdPal.UI.Helpers;
 using Microsoft.CmdPal.UI.Pages;
@@ -30,6 +31,7 @@ using Microsoft.CmdPal.UI.Settings;
 using Microsoft.CmdPal.UI.ViewModels;
 using Microsoft.CmdPal.UI.ViewModels.BuiltinCommands;
 using Microsoft.CmdPal.UI.ViewModels.Models;
+using Microsoft.CommandPalette.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.PowerToys.Telemetry;
@@ -82,7 +84,7 @@ internal sealed partial class Program
 
         // Services
         services.AddSingleton<IRootPageService, PowerToysRootPageService>();
-        services.AddSingleton<IAppHostService, PowerToysAppHostService>();
+        services.AddSingleton<AppExtensionHost, CommandPaletteHost>();
         services.AddSingleton<ITelemetryService, TelemetryService>();
         services.AddSingleton<IRunHistoryService, RunHistoryService>();
         services.AddSingleton<TopLevelCommandManager>();
@@ -138,6 +140,10 @@ internal sealed partial class Program
         services.AddSingleton<IPageViewModelFactoryService, CommandPalettePageViewModelFactory>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<CommandBarViewModel>();
+        services.AddTransient<ContextMenuViewModel>();
+
+        // Controls
+        services.AddTransient<ContextMenu>();
 
         // Views
         // App & MainWindow are singletons to ensure only one instance of each exists.
@@ -161,9 +167,6 @@ internal sealed partial class Program
         }
 
         _telemetry.WriteEvent(new ProcessStartedEvent());
-
-        Logger.LogDebug($"Starting at {DateTime.UtcNow}");
-        PowerToysTelemetry.Log.WriteEvent(new ProcessStartedEvent());
 
         // Ensure types used in XAML are preserved for AOT compilation
         TypePreservation.PreserveTypes();
